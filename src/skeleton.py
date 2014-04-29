@@ -27,12 +27,33 @@ d_sq_c = 7.0
 
 d_sq_max = d_max * d_max # not defined in paper?
 
+# some globals
 coordinate_data = []
+random_coordinates = []
+random_offset = 0
+old_coordinates = []
 
 def init_model(bounding_box=0.5):
     global coordinate_data
+    coordinate_data = []
     for i in range(0,NUMBER_CONTACTS):
         coordinate_data += [(bounding_box*random.random(), bounding_box*random.random(), bounding_box*random.random())]
+
+
+def randomize_model(bounding_box=0.5):
+    global coordinate_data
+    global random_offset, random_coordinates, old_coordinates
+    random_offset = random.randrange(0, NUMBER_CONTACTS)
+    random_coordinates = (bounding_box*random.random(), bounding_box*random.random(), bounding_box*random.random())
+    old_coordinates = coordinate_data[random_offset]
+    coordinate_data[random_offset] = random_coordinates
+
+
+def revert_model():
+    print "reverting change"
+    global coordinate_data
+    global random_offset, old_coordinates
+    coordinate_data[random_offset] = old_coordinates
 
 
 def print_model():
@@ -42,6 +63,7 @@ def print_model():
 
 def max_if(i,j):
     return max(if_data[i,j], if_data[j,i])
+
 
 def distance_sq(i,j):
     a = coordinate_data[i]
@@ -94,12 +116,51 @@ def pair_smoothing():
 def model_score():
     return contact_score() + noncontact_score() + pair_smoothing()
 
+#temperature calculator. non-linear decrease
+def sigmoid_temperature(k):
+  return -5000/(1 + math.exp(-k/200)) + 5000
+
+def linear_temperature(k):
+  return (-2500/1000)*k + 2500
 
 def main():
     
     init_model()
-    print model_score()
-    #print_model()
+    #print model_score()
+    
+    NUMBER_SIMULATIONS = 100
+    TESTING_SIGMOID = True
+    best_prior_score = 1e7
+    
+    for i in range(1,NUMBER_SIMULATIONS+1,1):
+        
+        T = 0
+        if TESTING_SIGMOID:
+            T = sigmoid_temperature(i)
+        else:
+            T = linear_temperature(i)
+        
+        randomize_model()
+        
+        i_score = model_score()
+        print "i_score", i_score
+        
+        score_diff = i_score - best_prior_score
+        
+        if score_diff > 0:
+            #print("score diff", score_diff)
+            score_diff = score_diff if score_diff < 5*T else 5*T
+            prob_to_accept = math.exp(-100*score_diff/T)
+            print("probability to accept:", prob_to_accept)
+            if prob_to_accept < random.random():
+                #print("probability not enough")
+                revert_model() # since we're using the same model we have to discard our changes
+                continue
+            print("accepting some randomness")
+
+        best_prior_score = i_score
+    
+    print "best score", best_prior_score
     
     
     # SA
