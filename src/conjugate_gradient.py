@@ -100,42 +100,42 @@ def model_score():
 
 
 # shim between skeleton and cg code
+iter_tracker = 0
+old_score = 0
+
 def f(x, *args):
-    print x
+    #print x
+    global iter_tracker, old_score
+    iter_tracker += 1
     
     global coordinate_data
     for i in range(0,NUMBER_CONTACTS_POINTS):
         coordinate_data[i] = x[i]
     
-    return model_score()
+    current_score = model_score()
+
+    print "iter:", iter_tracker, "score:", current_score, "change:", current_score - old_score
+
+    old_score = current_score
+    
+    return current_score
+
 
 def main():
         
-    random_start = init_model()
-    
-    #print_model()
-    
-    #return
-    
-    point_data = []
+    random_start = init_model().copy()
     args = []
     
-    #print point_data
-    
-    #return
-    opts = {'maxiter' : None,    # default value.
-         'disp' : True,    # non-default value.
-         'gtol' : 1e-5,    # default value.
-         'norm' : numpy.inf,  # default value.
-         'eps' : 1.4901161193847656e-08}  # default value.
+    opts = {'maxiter' : 1, 'disp' : True }
 
-    res2 = optimize.minimize(f, random_start, args=args,
-                         method='CG', options=opts)
+    #res2 = optimize.minimize(f, random_start, args=args, tol=100, method='CG', options=opts)
+    
+    res2 = optimize.minimize(f, random_start, args=args, tol=100, method='Anneal', options=opts)
     
     print res2
-    # hill climbing
-    # MCMC: ??
     
+    #print_model()
+
 
 if __name__ == '__main__':
     main()
