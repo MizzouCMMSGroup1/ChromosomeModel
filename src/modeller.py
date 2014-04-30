@@ -177,11 +177,16 @@ def main():
     z = numpy.zeros(NUMBER_CONTACTS)
     
     for i in range(0,NUMBER_CONTACTS):
-        x[i] = results.x[i]
-        y[i] = results.x[i+1]
-        z[i] = results.x[i+2]
-        print results.x[i], results.x[i+1], results.x[i+2]
+        x[i] = results.x[i*3]
+        y[i] = results.x[i*3+1]
+        z[i] = results.x[i*3+2]
+        print results.x[i*3], ',', results.x[i*3+1], ',', results.x[i*3+2]
 
+    #print "even more"
+    #print results.x
+
+    #return
+    
     mpl.rcParams['legend.fontsize'] = 10
 
     fig = plt.figure()
