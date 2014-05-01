@@ -59,7 +59,7 @@ def init_model(bounding_box=0.5):
 
 def print_model():
     global coordinate_data
-    print coordinate_data
+    print(coordinate_data)
 
 
 def max_if(i,j):
@@ -133,7 +133,7 @@ def f(x, *args):
     
     current_score = model_score()
 
-    #print "iter:", iter_tracker, "score:", current_score, "change:", current_score - old_score
+    print("iter:", iter_tracker, "score:", current_score, "change:", current_score - old_score)
 
     old_score = current_score
     
@@ -156,7 +156,7 @@ def main():
     setup_testing(number_residues)
 
     random_start = init_model().copy()
-    args = []
+    args = ()
     
     opts = {'maxiter' : 100, 'disp' : True }
 
@@ -167,10 +167,10 @@ def main():
     else:
         results = optimize.minimize(f, random_start, args=args, method='Anneal', options=opts)
 
-    print "internal iter: ", iter_tracker
+    print("internal iter: ", iter_tracker)
 
-    print results
-    print "saving final contact xyz coordinates"
+    print(results)
+    print("saving final contact xyz coordinates")
     
     x = numpy.zeros(NUMBER_CONTACTS)
     y = numpy.zeros(NUMBER_CONTACTS)
@@ -180,7 +180,7 @@ def main():
         x[i] = results.x[i*3]
         y[i] = results.x[i*3+1]
         z[i] = results.x[i*3+2]
-        print results.x[i*3], ',', results.x[i*3+1], ',', results.x[i*3+2]
+        print(results.x[i*3], ',', results.x[i*3+1], ',', results.x[i*3+2])
 
     print "final score:", results.fun
 
