@@ -172,7 +172,7 @@ class Chromo:
 
 		for i in range(1,epochs+1):
 			T = temp_func(epochs,temp,i)
-			new_conformation = current_best.random_neighbor(T/temp)
+			new_conformation = current_best.random_neighbor(1)
 			new_score = new_conformation.model_score()
 			score_diff = new_score - current_score
 			if score_diff > 0:
