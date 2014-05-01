@@ -21,6 +21,7 @@ class C:
 	W4 = 1.5
 
 	d_sq_min = 0.2
+	d_min = math.sqrt(d_sq_min)
 	da_sq_max = 1.8
 	d_max = 4.5
 	d_sq_c = 7.0
@@ -38,6 +39,7 @@ class C:
 		else:
 			raise BaseException("Must provide a filename or file")
 		self.IF_TOTAL = numpy.sum(self.IF_DATA)
+		self.IF_MAX = self.IF_DATA.max()
 
 # Chromosome 7 specifc parameters
 class C7:
@@ -47,6 +49,7 @@ class C7:
 	W4 = 1.5
 
 	d_sq_min = 0.2
+	d_min = math.sqrt(d_sq_min)
 	da_sq_max = 1.8
 	d_max = 4.5
 	d_sq_c = 7.0
@@ -65,6 +68,7 @@ class C7:
 		else:
 			raise BaseException("Must provide a filename or file")
 		self.IF_TOTAL = numpy.sum(self.IF_DATA)
+		self.IF_MAX = self.IF_DATA.max()
 
 class Chromo:
 
@@ -79,20 +83,21 @@ class Chromo:
 	def generate_neighborhood(self,scale=1):
 		random_index = random.randint(0,self.C.NUMBER_CONTACTS)
 		neighborhood = {}
+		movement = (self.C.d_max - self.C.d_min) * scale + self.C.d_min
 		for i,dim in enumerate(['x','y','z']):
 			neighborhood[dim] = []
 			plus = copy.copy(self)
 			plus.coordinate_data = copy.copy(self.coordinate_data)
-			plus.coordinate_data[random_index*3+i] += 1
+			plus.coordinate_data[random_index*3+i] += movement
 			neighborhood[dim].append(plus)
 			minus = copy.copy(self)
 			minus.coordinate_data = copy.copy(self.coordinate_data)
-			minus.coordinate_data[random_index*3+i] -= 1
+			minus.coordinate_data[random_index*3+i] -= movement
 			neighborhood[dim].append(minus)
 		return neighborhood
 
 	def random_neighbor(self,scale=1):
-		neighborhood = self.generate_neighborhood(scale=1)
+		neighborhood = self.generate_neighborhood(scale)
 		dim = random.choice(list(neighborhood.keys()))
 		coin = random.randint(2)
 		return neighborhood[dim][coin]
@@ -103,7 +108,7 @@ class Chromo:
 
 
 	def max_if(self,i,j):
-	    return max(self.C.IF_DATA[i,j], self.C.IF_DATA[j,i])
+	    return max(self.C.IF_DATA[i,j], self.C.IF_DATA[j,i])/self.C.IF_TOTAL
 
 
 	def distance_sq(self,i,j):
@@ -147,7 +152,7 @@ class Chromo:
 	        for j in range(0,self.C.NUMBER_CONTACTS):
 	            if abs(i-j) == 1:
 	                d_sq_ij = self.distance_sq(i,j)
-	                score += self.C.W1 * self.max_if(i,j) * math.tanh(self.C.da_sq_max - d_sq_ij) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+	                score += self.C.W1 * self.C.IF_MAX/self.C.IF_TOTAL * math.tanh(self.C.da_sq_max - d_sq_ij) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
 	    return score
 
 
@@ -167,22 +172,22 @@ class Chromo:
 
 		for i in range(1,epochs+1):
 			T = temp_func(epochs,temp,i)
-			new_conformation = current_best.random_neighbor(scale=T)
+			new_conformation = current_best.random_neighbor(T/temp)
 			new_score = new_conformation.model_score()
-			score_diff = current_score - new_score
+			score_diff = new_score - current_score
 			if score_diff > 0:
 				current_best = new_conformation
 				current_score = new_score
-				print("Accepting higher score")
+				print("Iter",i," - Accepting higher score")
 			else:
-				prob_to_accept = math.exp(score_diff/T)
-				if random.random() < prob_to_accept:
+				prob_to_accept = math.exp(temp*score_diff/T)
+				if score_diff != 0 and random.random() < prob_to_accept:
 					current_best = new_conformation
 					current_score = new_score
-					print("Accepting lower score")
+					print("Iter",i," - Accepting lower score")
 				else:
-					print("Ignoring lower score")
-			print("Current score:",current_score)
+					print("Iter",i," - Ignoring lower score")
+			print("Iter",i," - Current score:",current_score)
 			#print(current_best.coordinate_data)
 		return current_best
 
