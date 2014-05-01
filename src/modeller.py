@@ -63,7 +63,7 @@ def print_model():
 
 
 def max_if(i,j):
-    return max(if_data[i,j], if_data[j,i])
+    return max(if_data[i,j], if_data[j,i])/IF_TOTAL
 
 
 def distance_sq(i,j):
@@ -110,7 +110,7 @@ def pair_smoothing():
         for j in range(0,NUMBER_CONTACTS):
             if abs(i-j) == 1:
                 d_sq_ij = distance_sq(i,j)
-                score += W1 * max_if(i,j) * math.tanh(da_sq_max - d_sq_ij) + W2 * math.tanh(d_sq_ij - d_sq_min) / IF_TOTAL
+                score += W1 * numpy.max(if_data) / IF_TOTAL * math.tanh(da_sq_max - d_sq_ij) + W2 * math.tanh(d_sq_ij - d_sq_min) / IF_TOTAL
     return score
 
 
@@ -134,7 +134,7 @@ def f(x, *args):
     # we maximize the original function
     current_score = -1 * model_score()
 
-    print("iter:", iter_tracker, "score:", current_score, "change:", current_score - old_score)
+    #print("iter:", iter_tracker, "score:", current_score, "change:", current_score - old_score)
 
     old_score = current_score
     
@@ -159,8 +159,9 @@ def main():
     random_start = init_model().copy()
     args = ()
     
-    opts = {'maxiter' : 100, 'disp' : True }
-
+    #opts = {'maxiter' : 100, 'disp' : True }
+    opts = {}
+    
     results = 0
     
     if (TESTING_CONGUGATE_GRADIENT):
@@ -181,11 +182,11 @@ def main():
         x[i] = results.x[i*3]
         y[i] = results.x[i*3+1]
         z[i] = results.x[i*3+2]
-        print(results.x[i*3], ',', results.x[i*3+1], ',', results.x[i*3+2])
+        print(results.x[i*3], results.x[i*3+1], results.x[i*3+2])
 
     print("final score:", results.fun)
 
-    return
+    #return
     
     mpl.rcParams['legend.fontsize'] = 10
 
