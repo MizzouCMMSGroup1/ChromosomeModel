@@ -6,10 +6,12 @@ Utility files and global variables only
 '''
 
 import numpy
-import random
+from numpy import random
+import random as rand
 import math
 from scipy import optimize
 import copy
+import math
 
 # Generic Chromosome using some Chromosome 7 parameters
 class C:
@@ -74,16 +76,26 @@ class Chromo:
 	    for i in range(0,self.C.NUMBER_CONTACTS_POINTS):
 	        self.coordinate_data[i] = bounding_box * (0.5 - random.random())
 
-	def generate_neighborhood(self,bounding_box=0.5):
-		random_index = random.randrange(0,self.C.NUMBER_CONTACTS)
+	def generate_neighborhood(self,scale=1):
+		random_index = random.randint(0,self.C.NUMBER_CONTACTS)
 		neighborhood = {}
-		for dim in ['x','y','z']:
+		for i,dim in enumerate(['x','y','z']):
 			neighborhood[dim] = []
 			plus = copy.copy(self)
-			plus.coordinate_data[random_index] += 0.5
+			plus.coordinate_data = copy.copy(self.coordinate_data)
+			plus.coordinate_data[random_index*3+i] += 1
+			neighborhood[dim].append(plus)
 			minus = copy.copy(self)
-			minus.coordinate_dat[random_index] -= 0.5
+			minus.coordinate_data = copy.copy(self.coordinate_data)
+			minus.coordinate_data[random_index*3+i] -= 1
+			neighborhood[dim].append(minus)
 		return neighborhood
+
+	def random_neighbor(self,scale=1):
+		neighborhood = self.generate_neighborhood(scale=1)
+		dim = random.choice(list(neighborhood.keys()))
+		coin = random.randint(2)
+		return neighborhood[dim][coin]
 
 
 	def print_model(self):
@@ -142,6 +154,37 @@ class Chromo:
 	def model_score(self):
 	    return self.contact_score() + self.noncontact_score() + self.pair_smoothing()
 
+	#temperature calculator. non-linear decrease
+	def sigmoid_temperature(e,t,k):
+		return -t*2/(1 + math.exp(-5*k/t)) + t*2
+
+	def linear_temperature(e,t,k):
+		return (-t/e)*k + t
+
+	def simulated_annealing(seed,epochs,temp,temp_func):
+		current_score = seed.model_score()
+		current_best = seed
+
+		for i in range(1,epochs+1):
+			T = temp_func(epochs,temp,i)
+			new_conformation = current_best.random_neighbor(scale=T)
+			new_score = new_conformation.model_score()
+			score_diff = current_score - new_score
+			if score_diff > 0:
+				current_best = new_conformation
+				current_score = new_score
+				print("Accepting higher score")
+			else:
+				prob_to_accept = math.exp(score_diff/T)
+				if random.random() < prob_to_accept:
+					current_best = new_conformation
+					current_score = new_score
+					print("Accepting lower score")
+				else:
+					print("Ignoring lower score")
+			print("Current score:",current_score)
+			#print(current_best.coordinate_data)
+		return current_best
 
 	# shim between skeleton and cg code
 	iter_tracker = 0
