@@ -131,7 +131,8 @@ def f(x, *args):
     for i in range(0,NUMBER_CONTACTS_POINTS):
         coordinate_data[i] = x[i]
     
-    current_score = model_score()
+    # we maximize the original function
+    current_score = -1 * model_score()
 
     print("iter:", iter_tracker, "score:", current_score, "change:", current_score - old_score)
 
