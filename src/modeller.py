@@ -182,7 +182,7 @@ def main():
         z[i] = results.x[i*3+2]
         print(results.x[i*3], ',', results.x[i*3+1], ',', results.x[i*3+2])
 
-    print "final score:", results.fun
+    print("final score:", results.fun)
 
     return
     
