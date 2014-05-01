@@ -80,10 +80,10 @@ class Chromo:
 	    for i in range(0,self.C.NUMBER_CONTACTS_POINTS):
 	        self.coordinate_data[i] = bounding_box * (0.5 - random.random())
 
-	def generate_neighborhood(self,scale=1):
+	def generate_neighborhood(self,scale=0.5):
 		random_index = random.randint(0,self.C.NUMBER_CONTACTS)
 		neighborhood = {}
-		movement = (self.C.d_max - self.C.d_min) * scale + self.C.d_min
+		movement = scale
 		for i,dim in enumerate(['x','y','z']):
 			neighborhood[dim] = []
 			plus = copy.copy(self)
@@ -96,7 +96,7 @@ class Chromo:
 			neighborhood[dim].append(minus)
 		return neighborhood
 
-	def random_neighbor(self,scale=1):
+	def random_neighbor(self,scale=0.5):
 		neighborhood = self.generate_neighborhood(scale)
 		dim = random.choice(list(neighborhood.keys()))
 		coin = random.randint(2)
@@ -152,7 +152,7 @@ class Chromo:
 	        for j in range(0,self.C.NUMBER_CONTACTS):
 	            if abs(i-j) == 1:
 	                d_sq_ij = self.distance_sq(i,j)
-	                score += self.C.W1 * self.C.IF_MAX/self.C.IF_TOTAL * math.tanh(self.C.da_sq_max - d_sq_ij) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+	                score += self.C.W1 * (self.C.IF_MAX/self.C.IF_TOTAL) * math.tanh(self.C.da_sq_max - d_sq_ij) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
 	    return score
 
 
@@ -172,7 +172,7 @@ class Chromo:
 
 		for i in range(1,epochs+1):
 			T = temp_func(epochs,temp,i)
-			new_conformation = current_best.random_neighbor(1)
+			new_conformation = current_best.random_neighbor(current_best.C.d_min)
 			new_score = new_conformation.model_score()
 			score_diff = new_score - current_score
 			if score_diff > 0:
@@ -180,7 +180,8 @@ class Chromo:
 				current_score = new_score
 				print("Iter",i," - Accepting higher score")
 			else:
-				prob_to_accept = math.exp(temp*score_diff/T)
+				score_diff = 0 if score_diff > -1e-3 else score_diff
+				prob_to_accept = math.exp(1000*score_diff/T)
 				if score_diff != 0 and random.random() < prob_to_accept:
 					current_best = new_conformation
 					current_score = new_score

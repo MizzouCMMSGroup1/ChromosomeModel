@@ -19,7 +19,7 @@ import argparse
 import ChromoUtils as CU
 
 def run(chromo,runtype,epochs=1000,temp=2500):
-	chromo.init_model()
+	chromo.init_model(bounding_box=chromo.C.d_max)
 
 	args = ()
 
