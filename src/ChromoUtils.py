@@ -180,7 +180,7 @@ class Chromo:
 				current_score = new_score
 				print("Iter",i," - Accepting higher score")
 			else:
-				score_diff = 0 if score_diff > -1e-3 else score_diff
+				score_diff = 0 if score_diff > -0.005 else score_diff
 				prob_to_accept = math.exp(1000*score_diff/T)
 				if score_diff != 0 and random.random() < prob_to_accept:
 					current_best = new_conformation
