@@ -31,9 +31,21 @@ def run(chromo,runtype,epochs=1000,temp=2500):
 
 	if runtype == 'Anneal':
 		best_model = CU.Chromo.simulated_annealing(chromo,epochs,temp,CU.Chromo.linear_temperature)
+		
 		print(best_model)
 		print("saving final contact xyz coordinates")
-
+		
+		for i in range(0,chromo.C.NUMBER_CONTACTS):
+			x[i] = best_model.coordinate_data[i*3]
+			y[i] = best_model.coordinate_data[i*3+1]
+			z[i] = best_model.coordinate_data[i*3+2]
+			print(x[i], ',', y[i], ',', z[i])
+	elif runtype == 'MCMC':
+		best_model = CU.Chromo.MCMC(chromo,epochs)
+		
+		print(best_model)
+		print("saving final contact xyz coordinates")
+		
 		for i in range(0,chromo.C.NUMBER_CONTACTS):
 			x[i] = best_model.coordinate_data[i*3]
 			y[i] = best_model.coordinate_data[i*3+1]
@@ -72,15 +84,18 @@ def main():
 	t_group = parser.add_mutually_exclusive_group()
 	t_group.add_argument('-c','--conjugate',action='store_true')
 	t_group.add_argument('-a','--anneal',action='store_true')
+	t_group.add_argument('-m','--mcmc',action='store_true')
 
 	parser.add_argument('-e','--epochs',help='number of epochs to run for simulated annealing',type=int,default=1000)
 	parser.add_argument('-t','--temp',help='maximum temperature for simulated annealing',type=int,default=2500)
 	
 	args = parser.parse_args()
 
-	runtype = 'CG'
-	if args.anneal:
-		runtype = 'Anneal'
+	runtype = 'Anneal'
+	if args.conjugate:
+		runtype = 'CG'
+	elif args.mcmc:
+		runtype = 'MCMC'
 
 	c = CU.C(args.number,if_file=args.if_file)
 

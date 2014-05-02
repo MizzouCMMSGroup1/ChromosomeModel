@@ -214,6 +214,10 @@ class Chromo:
 	'''
 	Optimizations
 	'''
+	def update_score(old_conformation,old_score,new_conformation,index):
+		minus_score = old_conformation.single_contact_score(index)+old_conformation.single_noncontact_score(index)+old_conformation.single_pair_smoothing(index)
+		plus_score = new_conformation.single_contact_score(index)+new_conformation.single_noncontact_score(index)+new_conformation.single_pair_smoothing(index)
+		return old_score - minus_score + plus_score
 
 	#temperature calculator. non-linear decrease
 	def sigmoid_temperature(e,t,k):
@@ -231,10 +235,8 @@ class Chromo:
 			T = T if T > 1e-6 else 1e6 # Prevent divide-by-zero
 			# Generate neighbor and score/diff
 			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min/2)#*T/temp)
-			minus_score = current_conformation.single_contact_score(index) + current_conformation.single_noncontact_score(index) + current_conformation.single_pair_smoothing(index)
-			plus_score = new_conformation.single_contact_score(index) + new_conformation.single_noncontact_score(index) + new_conformation.single_pair_smoothing(index)
-			new_score = current_score - minus_score + plus_score
-			score_diff = new_score - current_score
+			new_score = Chromo.update_score(current_conformation,current_score,new_conformation,index)
+			score_diff = (new_score - current_score) * 1e4
 			# New conformation is better, accept
 			if score_diff > 0:
 				current_conformation = new_conformation
@@ -243,9 +245,10 @@ class Chromo:
 			else:
 				# Limit score diff. Small negative moves may mean
 				# drastic degredation of quality due to hyper-tangent
-				score_diff = 0 if score_diff > -0.005 else score_diff
+				# score_diff = 0 if score_diff > -0.005 else score_diff
+				score_diff = 0 if score_diff > -0.5 else score_diff
 				# Scale diff, as changes are normally in the 1e-2 range or below
-				prob_to_accept = math.exp(1000*score_diff/T)
+				prob_to_accept = math.exp(score_diff/T)
 				# Don't accept 0 score changes due to hyper-tangent above
 				if score_diff != 0 and random.random() < prob_to_accept:
 					current_conformation = new_conformation
@@ -263,20 +266,40 @@ class Chromo:
 		current_score = current_conformation.model_score()
 
 		for i in range(1,epochs+1):
-			neighborhood = current_conformation.generate_neighborhood(current_conformation.C.d_min*i/epochs)
-			candidates = [[current_score,current_conformation,0]]
+			(neighborhood,index) = current_conformation.generate_neighborhood(current_conformation.C.d_min*i/epochs)
+			candidates = [[current_conformation,current_score,0]]
+			
 			min_score = current_score
 			max_score = current_score
-			for neighbor in neighborhood:
-				neighbor_score = neighbor.model_score()
-				candidates.append([neighbor_score,neighbor,0])
-				if neighbor_score < min_score:
-					min_score = neighbor_score
-				if neighbor_score > max_score:
-					max_score = neighbor_score
+			
+			for k,neighbors in neighborhood.items():
+				for neighbor in neighbors:
+					neighbor_score = Chromo.update_score(current_conformation,current_score,neighbor,index)
+					candidates.append([neighbor,neighbor_score,0])
+					if neighbor_score < min_score:
+						min_score = neighbor_score
+					if neighbor_score > max_score:
+						max_score = neighbor_score
 			score_range = max_score - min_score
-			for j in len(candidates):
-				candidates[j][2] = (candidates[j][0] - min_score)/score_range
+			
+			if score_range == 0:
+				for j in range(len(candidates)):
+					candidates[j][2] = 1/len(candidates)
+			else:
+				for j in range(len(candidates)):
+					candidates[j][2] = abs((candidates[j][1] - min_score)/score_range)
+			
+			new_conformation = None
+			while new_conformation is None:
+				index = random.randint(len(candidates))
+				if random.random() < candidates[index][2]:
+					new_conformation = candidates[index]
+			
+			current_conformation = new_conformation[0]
+			current_score = new_conformation[1]
+			
+			print("Iter",i," - Current score:",current_score)
+		return current_conformation
 			
 
 	# shim between skeleton and cg code
