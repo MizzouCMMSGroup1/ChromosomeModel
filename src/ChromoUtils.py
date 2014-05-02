@@ -36,6 +36,7 @@ class C:
 			self.IF_DATA = numpy.loadtxt(self.IF_FILENAME, delimiter=',')
 		elif if_file is not None:
 			self.IF_FILE = if_file
+			self.IF_FILENAME = self.IF_FILE.name
 			self.IF_DATA = numpy.loadtxt(self.IF_FILE, delimiter=',')
 		else:
 			raise BaseException("Must provide a filename or file")
@@ -66,6 +67,7 @@ class C7:
 			self.IF_DATA = numpy.loadtxt(self.IF_FILENAME, delimiter=',')
 		elif if_file is not None:
 			self.IF_FILE = if_file
+			self.IF_FILENAME = self.IF_FILE.name
 			self.IF_DATA = numpy.loadtxt(self.IF_FILE, delimiter=',')
 		else:
 			raise BaseException("Must provide a filename or file")
@@ -226,15 +228,20 @@ class Chromo:
 	def linear_temperature(e,t,k):
 		return (-t/e)*k + t
 
-	def simulated_annealing(seed,epochs,temp,temp_func):
+	def simulated_annealing(seed,epochs,temp,temp_func,outfilename=None):
+		if outfilename is None:
+			outfilename = 'SA_%d_%d_%s' % (epochs,temp,seed.C.IF_FILENAME)
+		else:
+			outfilename = 'SA_%d_%d_%s' % (epochs,temp,outfilename)
+
 		current_conformation = seed
 		current_score = current_conformation.model_score()
 
 		for i in range(1,epochs+1):
 			T = temp_func(epochs,temp,i)
-			T = T if T > 1e-6 else 1e6 # Prevent divide-by-zero
+			T = T if T > 1e-6 else 1e-6 # Prevent divide-by-zero
 			# Generate neighbor and score/diff
-			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min/2)#*T/temp)
+			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min*T/temp)
 			new_score = Chromo.update_score(current_conformation,current_score,new_conformation,index)
 			score_diff = (new_score - current_score) * 1e4
 			# New conformation is better, accept
@@ -245,7 +252,6 @@ class Chromo:
 			else:
 				# Limit score diff. Small negative moves may mean
 				# drastic degredation of quality due to hyper-tangent
-				# score_diff = 0 if score_diff > -0.005 else score_diff
 				score_diff = 0 if score_diff > -0.5 else score_diff
 				# Scale diff, as changes are normally in the 1e-2 range or below
 				prob_to_accept = math.exp(score_diff/T)
@@ -256,12 +262,23 @@ class Chromo:
 					print("Iter",i," - Accepting lower score")
 				else:
 					print("Iter",i," - Ignoring lower score")
+			
 			print("Iter",i," - Current score:",current_score)
-			#print(current_conformation.coordinate_data)
+
+			if i % 1000 == 0:
+				fp = open('%s-%d.pdb' % (outfilename,i),'w')
+				current_conformation.printPDB(fp)
+				fp.close()
+
 		return current_conformation
 
 	# MCMC
-	def MCMC(seed,epochs):
+	def MCMC(seed,epochs,outfilename=None):
+		if outfilename is None:
+			outfilename = 'MCMC_%d_%s' % (epochs,seed.C.IF_FILENAME)
+		else:
+			outfilename = 'MCMC_%d_%s' % (epochs,outfilename)
+
 		current_conformation = seed
 		current_score = current_conformation.model_score()
 
@@ -299,6 +316,11 @@ class Chromo:
 			current_score = new_conformation[1]
 			
 			print("Iter",i," - Current score:",current_score)
+
+			if i % 1000 == 0:
+				fp = open('%s-%d.pdb' % (outfilename,i),'w')
+				current_conformation.printPDB(fp)
+				fp.close()
 		return current_conformation
 			
 
