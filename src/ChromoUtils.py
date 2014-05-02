@@ -236,41 +236,39 @@ class Chromo:
 
 		current_conformation = seed
 		current_score = current_conformation.model_score()
+		scores = []
 
 		for i in range(1,epochs+1):
 			T = temp_func(epochs,temp,i)
 			T = T if T > 1e-6 else 1e-6 # Prevent divide-by-zero
 			# Generate neighbor and score/diff
-			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min*T/temp)
+			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min/2)#*2*(epochs-i)/epochs)
 			new_score = Chromo.update_score(current_conformation,current_score,new_conformation,index)
-			score_diff = (new_score - current_score) * 1e4
+			score_diff = (new_score - current_score) * 1e5
 			# New conformation is better, accept
 			if score_diff > 0:
 				current_conformation = new_conformation
 				current_score = new_score
-				print("Iter",i," - Accepting higher score")
 			else:
 				# Limit score diff. Small negative moves may mean
 				# drastic degredation of quality due to hyper-tangent
-				score_diff = 0 if score_diff > -0.5 else score_diff
+				score_diff = 0 if score_diff > -5 else score_diff
 				# Scale diff, as changes are normally in the 1e-2 range or below
 				prob_to_accept = math.exp(score_diff/T)
 				# Don't accept 0 score changes due to hyper-tangent above
 				if score_diff != 0 and random.random() < prob_to_accept:
 					current_conformation = new_conformation
 					current_score = new_score
-					print("Iter",i," - Accepting lower score")
-				else:
-					print("Iter",i," - Ignoring lower score")
 			
 			print("Iter",i," - Current score:",current_score)
+			scores.append(current_score)
 
 			if i % 1000 == 0:
 				fp = open('%s-%d.pdb' % (outfilename,i),'w')
 				current_conformation.printPDB(fp)
 				fp.close()
 
-		return current_conformation
+		return current_conformation,scores
 
 	# MCMC
 	def MCMC(seed,epochs,outfilename=None):
@@ -281,9 +279,10 @@ class Chromo:
 
 		current_conformation = seed
 		current_score = current_conformation.model_score()
+		scores = []
 
 		for i in range(1,epochs+1):
-			(neighborhood,index) = current_conformation.generate_neighborhood(current_conformation.C.d_min*i/epochs)
+			(neighborhood,index) = current_conformation.generate_neighborhood(current_conformation.C.d_min/2)#*(epochs-i)/epochs)
 			candidates = [[current_conformation,current_score,0]]
 			
 			min_score = current_score
@@ -297,6 +296,9 @@ class Chromo:
 						min_score = neighbor_score
 					if neighbor_score > max_score:
 						max_score = neighbor_score
+			
+			max_score = abs(max_score)
+			min_score = abs(min_score)
 			score_range = max_score - min_score
 			
 			if score_range == 0:
@@ -304,7 +306,7 @@ class Chromo:
 					candidates[j][2] = 1/len(candidates)
 			else:
 				for j in range(len(candidates)):
-					candidates[j][2] = abs((candidates[j][1] - min_score)/score_range)
+					candidates[j][2] = (abs(candidates[j][1]) - min_score)/score_range
 			
 			new_conformation = None
 			while new_conformation is None:
@@ -316,12 +318,13 @@ class Chromo:
 			current_score = new_conformation[1]
 			
 			print("Iter",i," - Current score:",current_score)
+			scores.append(current_score)
 
 			if i % 1000 == 0:
 				fp = open('%s-%d.pdb' % (outfilename,i),'w')
 				current_conformation.printPDB(fp)
 				fp.close()
-		return current_conformation
+		return current_conformation, scores
 			
 
 	# shim between skeleton and cg code
