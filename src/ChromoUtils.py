@@ -25,6 +25,7 @@ class C:
 	da_sq_max = 1.8
 	d_max = 4.5
 	d_sq_c = 7.0
+	d_c = math.sqrt(d_sq_c)
 	d_sq_max = d_max * d_max
 
 	def __init__(self,num_contacts,if_filename=None,if_file=None):
@@ -53,6 +54,7 @@ class C7:
 	da_sq_max = 1.8
 	d_max = 4.5
 	d_sq_c = 7.0
+	d_c = math.sqrt(d_sq_c)
 	d_sq_max = d_max * d_max
 
 	NUMBER_CONTACTS = 157
@@ -81,26 +83,26 @@ class Chromo:
 	        self.coordinate_data[i] = bounding_box * (0.5 - random.random())
 
 	def generate_neighborhood(self,scale=0.5):
-		random_index = random.randint(0,self.C.NUMBER_CONTACTS)
+		index = random.randint(0,self.C.NUMBER_CONTACTS)
 		neighborhood = {}
 		movement = scale
 		for i,dim in enumerate(['x','y','z']):
 			neighborhood[dim] = []
 			plus = copy.copy(self)
 			plus.coordinate_data = copy.copy(self.coordinate_data)
-			plus.coordinate_data[random_index*3+i] += movement
+			plus.coordinate_data[index*3+i] += movement
 			neighborhood[dim].append(plus)
 			minus = copy.copy(self)
 			minus.coordinate_data = copy.copy(self.coordinate_data)
-			minus.coordinate_data[random_index*3+i] -= movement
+			minus.coordinate_data[index*3+i] -= movement
 			neighborhood[dim].append(minus)
-		return neighborhood
+		return (neighborhood,index)
 
 	def random_neighbor(self,scale=0.5):
-		neighborhood = self.generate_neighborhood(scale)
+		(neighborhood,index) = self.generate_neighborhood(scale)
 		dim = random.choice(list(neighborhood.keys()))
 		coin = random.randint(2)
-		return neighborhood[dim][coin]
+		return (neighborhood[dim][coin],index)
 
 
 	def print_model(self):
@@ -117,31 +119,63 @@ class Chromo:
 	    return (a[0] - b[0])**2 + (a[1] - b[1])**2 + (a[2] - b[2])**2
 
 
+	def single_contact_score(self,i):
+		score = 0
+		for j in range(0,self.C.NUMBER_CONTACTS):
+			if i != j and abs(i-j) != 1:
+				d_sq_ij = self.distance_sq(i,j)
+				if d_sq_ij < self.C.d_sq_c:
+					score += self.C.W1 * math.tanh(self.C.d_sq_c - d_sq_ij) * self.max_if(i,j) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+		return score
+
 	def contact_score(self):
 	    '''
 	    minimize the distance (but keep above min_threshold) between non-sequential pairs that have affinity
 	    '''
 	    score = 0
 	    for i in range(0,self.C.NUMBER_CONTACTS):
+	    	'''
 	        for j in range(0,self.C.NUMBER_CONTACTS):
-	            if i != j or abs(i-j) != 1:
+	            if i != j and abs(i-j) != 1:
 	                d_sq_ij = self.distance_sq(i,j)
-	                score += self.C.W1 * math.tanh(self.C.d_sq_c - d_sq_ij) * self.max_if(i,j) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+	                if d_sq_ij < self.C.d_sq_c:
+	                	score += self.C.W1 * math.tanh(self.C.d_sq_c - d_sq_ij) * self.max_if(i,j) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+	    	'''
+	    	score += self.single_contact_score(i)
 	    return score
 
-
+	def single_noncontact_score(self,i):
+		score = 0
+		for j in range(0,self.C.NUMBER_CONTACTS):
+			if i != j and abs(i-j) != 1:
+				d_sq_ij = self.distance_sq(i,j)
+				if d_sq_ij < self.C.d_sq_c:
+					score += self.C.W3 * math.tanh(self.C.d_sq_max - d_sq_ij) / self.C.IF_TOTAL + self.C.W4 * math.tanh(d_sq_ij - self.C.d_sq_c) / self.C.IF_TOTAL
+		return score
+	
 	def noncontact_score(self):
 	    '''
 	    maximize the distance (but keep below max_threshold) between non-sequential pairs that don't have affinity
 	    '''
 	    score = 0
 	    for i in range(0,self.C.NUMBER_CONTACTS):
+	    	'''
 	        for j in range(0,self.C.NUMBER_CONTACTS):
-	            if i != j or abs(i-j) != 1:
+	            if i != j and abs(i-j) != 1:
 	                d_sq_ij = self.distance_sq(i,j)
-	                score += self.C.W3 * math.tanh(self.C.d_sq_max - d_sq_ij) / self.C.IF_TOTAL + self.C.W4 * math.tanh(d_sq_ij - self.C.d_sq_c) / self.C.IF_TOTAL
+	                if d_sq_ij > self.C.d_sq_c:
+	                	score += self.C.W3 * math.tanh(self.C.d_sq_max - d_sq_ij) / self.C.IF_TOTAL + self.C.W4 * math.tanh(d_sq_ij - self.C.d_sq_c) / self.C.IF_TOTAL
+	    	'''
+	    	score += self.single_noncontact_score(i)
 	    return score
 
+	def single_pair_smoothing(self,i):
+		score = 0
+		for j in range(0,self.C.NUMBER_CONTACTS):
+			if abs(i-j) == 1:
+				d_sq_ij = self.distance_sq(i,j)
+				score += self.C.W1 * (self.C.IF_MAX/self.C.IF_TOTAL) * math.tanh(self.C.da_sq_max - d_sq_ij) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+		return score
 
 	def pair_smoothing(self):
 	    '''
@@ -149,10 +183,13 @@ class Chromo:
 	    '''
 	    score = 0
 	    for i in range(0,self.C.NUMBER_CONTACTS):
+	    	'''
 	        for j in range(0,self.C.NUMBER_CONTACTS):
 	            if abs(i-j) == 1:
 	                d_sq_ij = self.distance_sq(i,j)
 	                score += self.C.W1 * (self.C.IF_MAX/self.C.IF_TOTAL) * math.tanh(self.C.da_sq_max - d_sq_ij) + self.C.W2 * math.tanh(d_sq_ij - self.C.d_sq_min) / self.C.IF_TOTAL
+	    	'''
+	    	score += self.single_pair_smoothing(i)
 	    return score
 
 
@@ -186,31 +223,61 @@ class Chromo:
 		return (-t/e)*k + t
 
 	def simulated_annealing(seed,epochs,temp,temp_func):
-		current_score = seed.model_score()
-		current_best = seed
+		current_conformation = seed
+		current_score = current_conformation.model_score()
 
 		for i in range(1,epochs+1):
 			T = temp_func(epochs,temp,i)
-			T = T if T > 1e-6 else 1e6
-			new_conformation = current_best.random_neighbor(current_best.C.d_min*T/temp)
-			new_score = new_conformation.model_score()
+			T = T if T > 1e-6 else 1e6 # Prevent divide-by-zero
+			# Generate neighbor and score/diff
+			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min*T/temp)
+			minus_score = current_conformation.single_contact_score(index) + current_conformation.single_noncontact_score(index) + current_conformation.single_pair_smoothing(index)
+			plus_score = new_conformation.single_contact_score(index) + new_conformation.single_noncontact_score(index) + new_conformation.single_pair_smoothing(index)
+			new_score = current_score - minus_score + plus_score
 			score_diff = new_score - current_score
+			# New conformation is better, accept
 			if score_diff > 0:
-				current_best = new_conformation
+				current_conformation = new_conformation
 				current_score = new_score
 				print("Iter",i," - Accepting higher score")
 			else:
+				# Limit score diff. Small negative moves may mean
+				# drastic degredation of quality due to hyper-tangent
 				score_diff = 0 if score_diff > -0.005 else score_diff
+				# Scale diff, as changes are normally in the 1e-2 range or below
 				prob_to_accept = math.exp(1000*score_diff/T)
+				# Don't accept 0 score changes due to hyper-tangent above
 				if score_diff != 0 and random.random() < prob_to_accept:
-					current_best = new_conformation
+					current_conformation = new_conformation
 					current_score = new_score
 					print("Iter",i," - Accepting lower score")
 				else:
 					print("Iter",i," - Ignoring lower score")
 			print("Iter",i," - Current score:",current_score)
-			#print(current_best.coordinate_data)
-		return current_best
+			#print(current_conformation.coordinate_data)
+		return current_conformation
+
+	# MCMC
+	def MCMC(seed,epochs):
+		current_conformation = seed
+		current_score = current_conformation.model_score()
+
+		for i in range(1,epochs+1):
+			neighborhood = current_conformation.generate_neighborhood(current_conformation.C.d_min*i/epochs)
+			candidates = [[current_score,current_conformation,0]]
+			min_score = current_score
+			max_score = current_score
+			for neighbor in neighborhood:
+				neighbor_score = neighbor.model_score()
+				candidates.append([neighbor_score,neighbor,0])
+				if neighbor_score < min_score:
+					min_score = neighbor_score
+				if neighbor_score > max_score:
+					max_score = neighbor_score
+			score_range = max_score - min_score
+			for j in len(candidates):
+				candidates[j][2] = (candidates[j][0] - min_score)/score_range
+			
 
 	# shim between skeleton and cg code
 	iter_tracker = 0
