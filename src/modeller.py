@@ -80,7 +80,7 @@ def contact_score():
     score = 0
     for i in range(0,NUMBER_CONTACTS):
         for j in range(0,NUMBER_CONTACTS):
-            if i != j or abs(i-j) != 1:
+            if abs(i-j) > 1:
                 d_sq_ij = distance_sq(i,j)
                 score += W1 * math.tanh(d_sq_c - d_sq_ij) * max_if(i,j) + W2 * math.tanh(d_sq_ij - d_sq_min) / IF_TOTAL
     return score
@@ -94,7 +94,7 @@ def noncontact_score():
     score = 0
     for i in range(0,NUMBER_CONTACTS):
         for j in range(0,NUMBER_CONTACTS):
-            if i != j or abs(i-j) != 1:
+            if abs(i-j) > 1:
                 d_sq_ij = distance_sq(i,j)
                 score += W3 * math.tanh(d_sq_max - d_sq_ij) / IF_TOTAL + W4 * math.tanh(d_sq_ij - d_sq_c) / IF_TOTAL
     return score
@@ -185,7 +185,7 @@ def main():
         print(results.x[i*3], results.x[i*3+1], results.x[i*3+2])
 
     print("final score:", results.fun)
-
+    print("success?", results.success)
     #return
     
     mpl.rcParams['legend.fontsize'] = 10
