@@ -230,7 +230,7 @@ class Chromo:
 			T = temp_func(epochs,temp,i)
 			T = T if T > 1e-6 else 1e6 # Prevent divide-by-zero
 			# Generate neighbor and score/diff
-			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min*T/temp)
+			(new_conformation,index) = current_conformation.random_neighbor(current_conformation.C.d_min/2)#*T/temp)
 			minus_score = current_conformation.single_contact_score(index) + current_conformation.single_noncontact_score(index) + current_conformation.single_pair_smoothing(index)
 			plus_score = new_conformation.single_contact_score(index) + new_conformation.single_noncontact_score(index) + new_conformation.single_pair_smoothing(index)
 			new_score = current_score - minus_score + plus_score
