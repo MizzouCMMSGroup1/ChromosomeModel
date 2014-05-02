@@ -53,20 +53,22 @@ def run(chromo,runtype,epochs=1000,temp=2500):
 
 	mpl.rcParams['legend.fontsize'] = 10
 
-	fig = plt.figure()
+	fig = plt.figure('Chromo',figsize=(6,6))
 	ax = fig.gca(projection='3d')
 
 	ax.plot(x, y, z, label='3d plot of generated contacts')
 	ax.legend()
 
-	plt.show()
+	#plt.show()
+	plt.savefig("Chromo.png", dpi=96, format='png')
 
 def main():
 	parser = argparse.ArgumentParser(description="Runner for PyChromosomeModeler")
 	
 	parser.add_argument('-n','--number', help='number of residues to model',type=int,default=5)
 	parser.add_argument('-f','--if_file',help='the Interaction Frequency file',type=argparse.FileType('r'))
-	
+	parser.add_argument('-o','--output',help='output pdb file',type=argparse.FileType('w'))
+
 	t_group = parser.add_mutually_exclusive_group()
 	t_group.add_argument('-c','--conjugate',action='store_true')
 	t_group.add_argument('-a','--anneal',action='store_true')
@@ -88,6 +90,8 @@ def main():
 	chromo = CU.Chromo(c)
 
 	run(chromo,runtype,epochs,temp)
+
+	chromo.printPDB(args.output)
 
 if __name__ == "__main__":
 	main()

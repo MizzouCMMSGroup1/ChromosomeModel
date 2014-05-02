@@ -159,6 +159,25 @@ class Chromo:
 	def model_score(self):
 	    return self.contact_score() + self.noncontact_score() + self.pair_smoothing()
 
+	'''
+	Print to PDB
+	'''
+	def printPDB(self,fp):
+		lines = []
+		for i in range(self.C.NUMBER_CONTACTS):
+			x = self.coordinate_data[i*3]
+			y = self.coordinate_data[i*3+1]
+			z = self.coordinate_data[i*3+2]
+			lines.append('ATOM  %5d %4s%c%3s %c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s\n' % (
+				i,"C",' ',"XXX",'A',i,' ',
+				x,y,z,0.0,0.0,'C ','  '
+			))
+		fp.writelines(lines)
+
+	'''
+	Optimizations
+	'''
+
 	#temperature calculator. non-linear decrease
 	def sigmoid_temperature(e,t,k):
 		return -t*2/(1 + math.exp(-5*k/t)) + t*2
