@@ -43,7 +43,8 @@ def run(regions,runs,runtype,epochs,temp,if_file,outfilename=None):
 	if runtype == 'SA':
 		for i in range(runs):
 			temp_outname = "%s-%d" % (outfilename,i)
-			conformation,score = CU.Chromo.simulated_annealing(chromo,epochs,temp,CU.Chromo.linear_temperature,outfilename=temp_outname)
+			linear = CU.Chromo.linear_temperature
+			conformation,score = CU.Chromo.simulated_annealing(chromo,epochs,temp,linear,outfilename=temp_outname)
 			conformations.append(conformation)
 			scores.append(score)
 	elif runtype == 'MCMC':
