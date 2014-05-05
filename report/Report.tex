@@ -48,7 +48,15 @@ The human genome has been sequenced, but modelling the human chromosome remains 
 
 \section{Overview}
 
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{architecture}
+\caption{Architecture Summary}
+\label{Fig:architecture}
+\end{center}
+\end{figure}
 
+We do not have a complicated pipeline for this project.  Essentially, we take input data, clean it up slightly, and apply one of three different methods: CG, SA, and MCMC.
 
 \section{Dataset}
 
@@ -140,7 +148,16 @@ For a neighborhood function, we select a contact at random.  Next, we generate a
 
 For our second test of stochastic methods, we built a Markov-Chain Monte Carlo sampler.  Markov chains are an important technique in computer science from statistics.  First, we build up a graph model of discreet events with a corresponding transition matrix.  Next, we seed the transition matrix using real-world data (generally derived from posterior probability distributions).  Then, we can sample the Markov model repeatedly (Monte Carlo) to try and converge upon a solution space that is generally an excellent model of our problem domain.
 
-For our project, we utilized MCMC to optimize our state/input vector (coordinate data) to most closely approximate our posteior distribution (our objective function).  Our methods converged well, but required some time to mix (~600k simulations).  We utilized the same neighborhood function as in Simulated Annealing.
+For our project, we utilized MCMC to optimize our state/input vector (coordinate data) to most closely approximate our posteior distribution (our objective function).  Our methods converged well, but required some time to mix (~600k simulations).  We utilized a different neighborhood function than we used in Simulated Annealing.  First, we select a random region from which to generate a neighborhood. The neighborhood is then created by increasing/decreasing the location in each of the three dimensions: $(x, y, z)$. In this way we generate 8 neighbors and a default position which are scored and given a probability of selection based on the score range, with higher scoring conformations more likely to be sampled. Once a new neighbor conformation is selected the process repeats until all iterations have completed.
+
+We tested two different versions of MCMC: a greedy and non-greedy selector:
+
+\begin{equation}
+      T_{greedy} = (score - minScore) / scoreRange
+    \end{equation}
+\begin{equation}
+      T_{non-greedy} = (score - minScore) / (scoreSum - minScore * neighborCount)
+    \end{equation}
 
 \begin{figure}[H]
 \begin{center}
@@ -153,6 +170,15 @@ For our project, we utilized MCMC to optimize our state/input vector (coordinate
 \section{Results}
 
 
+\begin{center}
+\begin{tabular}{|l|c|c|c|r|}
+\multicolumn{2}{c}{Iterations/minute} \\
+    \hline
+    SA & 10,000 \\ \hline
+    MCMC: greedy & 1750    \\ \hline
+    MCMC: non-greedy & 1700    \\ \hline
+    \end{tabular}
+\end{center}
 
 \section{Visualization}
 
