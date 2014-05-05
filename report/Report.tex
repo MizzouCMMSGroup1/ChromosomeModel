@@ -36,7 +36,6 @@
 
 \maketitle
 
-\renewcommand{\abstractname}{}
 \begin{abstract}
 
 First, we construct a congugate gradient (CG) descent searcher to build a 3D model of a human chromosome using the method advanced by Trieu and Cheng in a recent paper.  Next, we utilize two different stochastic methods, simulated annealing (SA) and Markov-Chain Monte-Carlo (MCMC), to duplicate our CG results.  Then, we build a PDB model of the final chromosome and visualize the process of solving the objective function.  Ultimately, we compare our results with other research in this domain, discuss difficulties we encountered and potential future improvements that could be made.
@@ -53,7 +52,7 @@ The human genome has been sequenced, but modelling the human chromosome remains 
 
 \section{Dataset}
 
-We obtained a megabase resolution fragment database (157x157, dropping first/last residues from Chromosome 7) from Trieu to work with.  We set all entries less than 0.66 to 0, as per the same treatment in the original paper.  We also made a list of the constants they used, so that our results would match.
+We obtained a megabase resolution fragment database (157x157, dropping first/last residues from Chromosome 7) from Trieu to work with.  We set all entries less than 0.66 to 0, as per the same treatment in the original paper.  We also made a list of the constants they used, so that our results would (hopefully) match.
 
 \section{Objective function}
 
@@ -87,7 +86,7 @@ We also used the following table of constants from Trieu and Cheng's paper.  The
 \begin{tabular}{|l|c|c|c|r|}
 \multicolumn{4}{c}{Constants} \\
     \hline
-    $d_{min}$ & 1 & W1 & 1.0           \\ \hline
+    $d_{min}$ & $\sqrt 0.2$ & W1 & 1.0           \\ \hline
     $d_{max}$ & 4.5  & W2 & 1.5      \\ \hline
     $d_{c}$ & $\sqrt 7.0$  & W3 & 1.5            \\ \hline
     $da_{max}$ & $\sqrt 1.8$  & W4 & 1.5     \\ \hline
@@ -129,6 +128,14 @@ We tested the following two temperature functions, one sigmoid and one linear:
     
 For a neighborhood function, we select a contact at random.  Next, we generate a random offset, scaled using the known minimum contact distance: $d_{c}/2*(x,y,z)$.  Then, we score the two models using the method described previously.  For our simulated annealing schedule, we ended up using one million simulations (epochs) over a temperature range of 250 degrees.
 
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{SA_Chromo7-Scores}
+\caption{A graph of score versus number of simulations for SA}
+\label{Fig:sa_score}
+\end{center}
+\end{figure}
+
 \section{Markov-Chain Monte-Carlo}
 
 For our second test of stochastic methods, we built a Markov-Chain Monte Carlo sampler.  Markov chains are an important technique in computer science from statistics.  First, we build up a graph model of discreet events with a corresponding transition matrix.  Next, we seed the transition matrix using real-world data (generally derived from posterior probability distributions).  Then, we can sample the Markov model repeatedly (Monte Carlo) to try and converge upon a solution space that is generally an excellent model of our problem domain.
@@ -137,7 +144,7 @@ For our project, we utilized MCMC to optimize our state/input vector (coordinate
 
 \begin{figure}[H]
 \begin{center}
-\includegraphics[width=\textwidth]{chromo7}
+\includegraphics[width=\textwidth]{MCMC_Chromo7-Scores}
 \caption{A graph of mixing versus number of simulations for MCMC}
 \label{Fig:mcmc_mixing}
 \end{center}
