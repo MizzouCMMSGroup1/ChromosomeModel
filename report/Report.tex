@@ -36,9 +36,12 @@
 
 \maketitle
 
-\section{Abstract}
+\renewcommand{\abstractname}{}
+\begin{abstract}
 
 First, we construct a congugate gradient (CG) descent searcher to build a 3D model of a human chromosome using the method advanced by Trieu and Cheng in a recent paper.  Next, we utilize two different stochastic methods, simulated annealing (SA) and Markov-Chain Monte-Carlo (MCMC), to duplicate our CG results.  Then, we build a PDB model of the final chromosome and visualize the process of solving the objective function.  Ultimately, we compare our results with other research in this domain, discuss difficulties we encountered and potential future improvements that could be made.
+
+\end{abstract}
 
 \section{Introduction}
 
@@ -69,13 +72,13 @@ The first operation minimizes the distances of contacts with affinity to keep th
 The second operation maximizes the distances of contacts without affinity to keep them away from contact (but keeps their distance below a maximum threshold):
 
 \begin{multline}
-      NonContactScore(m) = \sum_{i=1}^{n} \sum_{j=1}^{n} (\abs{i-j}>1) * (W_3 * \tanh(d_{max}^2-d_{ij}^2) / totalIF \\+ W_2 * \tanh(d_{ij}^2-d_{c}^2) / totalIF)
+      NonContactScore(m) = \sum_{i=1}^{n} \sum_{j=1}^{n} (\abs{i-j}>1) * (W_3 * \tanh(d_{max}^2-d_{ij}^2) / TotalIF \\+ W_4 * \tanh(d_{ij}^2-d_{c}^2) / TotalIF)
 \end{multline}
 
-The third operation tweaks the scores of consecutive contacts slightly so that moving them is favored during gradient descent:
+The third operation tweaks the scores of consecutive contacts slightly so that moving them is favored over adjusting more distant relationships:
 
 \begin{multline}
-      PairSmoothing(m) = \sum_{i=1}^{n} \sum_{j=1}^{n} (\abs{i-j}=1) * (W_1 * IF_{max} / totalIF * \tanh(da_{max}^2-d_{ij}^2) \\+ W_2 * \tanh(d_{ij}^2-d_{min}^2) / totalIF)
+      PairSmoothing(m) = \sum_{i=1}^{n} \sum_{j=1}^{n} (\abs{i-j}=1) * (W_1 * IF_{max} / TotalIF * \tanh(da_{max}^2-d_{ij}^2) \\+ W_2 * \tanh(d_{ij}^2-d_{min}^2) / TotalIF)
 \end{multline}
 
 We also used the following table of constants from Trieu and Cheng's paper.  They are experimentally derived values.
@@ -94,7 +97,7 @@ We also used the following table of constants from Trieu and Cheng's paper.  The
 We also make use of the following:
 
 \begin{equation}
-      TotalIF = sum(input IF matrix)
+      TotalIF = \sum_{i=1}^{n} \sum_{j=1}^{n} IF(i,j)
 \end{equation}
 
 \begin{equation}
@@ -102,10 +105,10 @@ We also make use of the following:
 \end{equation}
 
 \begin{equation}
-      IF_{max} = max(IF(i,j),IF(j,i))
+      IF_{max} = \max(IF(i,j),IF(j,i))
 \end{equation}
 
-Combining the above equations, we end up with a combined objective function of approximately 50000 subproblems, as detailed above.  Our problem now is simply to maximize the result given a 471 variable input vector (157 contacts * 3 coordinates (x,y,z)) across this space.  Towards this end, we present one deterministic and two stochastic methods of optimization.  For each version, our initial problem subspace is randomly chosen coordinates in the domain $-0.5 =< (x, y, z) <= 0.5$. 
+Combining the above equations, we end up with a combined objective function of approximately 50000 subproblems, as detailed above.  Our problem now is simply to maximize the result given a 471 variable input vector (157 contacts * 3 coordinates $(x, y, z)$) across this space.  Towards this end, we present one deterministic and two stochastic methods of optimization.  For each version, our initial solution subspace is randomly chosen coordinates in the domain $-0.5 \leq (x, y, z) \leq 0.5$. 
 
 \section{Conjugate Gradient Descent}
 
@@ -118,17 +121,27 @@ For our first test of stochastic methods, we built a simulated annealer capable 
 We tested the following two temperature functions, one sigmoid and one linear:
 
 \begin{equation}
-      T_s(e,t,k) =  -t*2/(1 + math.exp(-5*k/t)) + t*2
+      T_s(e,t,k) =  -t*2/(1 + \exp(-5*k/t)) + t*2
     \end{equation}
 \begin{equation}
       T_l(e,t,k) =  (-t/e)*k + t
     \end{equation}
     
-For a neighborhood function, we selected a contact at random and moved it a random amount.
+For a neighborhood function, we select a contact at random.  Next, we generate a random offset, scaled using the known minimum contact distance: $d_{c}/2*(x,y,z)$.  Then, we score the two models using the method described previously.  For our simulated annealing schedule, we ended up using one million simulations (epochs) over a temperature range of 250 degrees.
 
 \section{Markov-Chain Monte-Carlo}
 
-For our second test of stochastic methods, we built a Markov-Chain Monte Carlo sampler.
+For our second test of stochastic methods, we built a Markov-Chain Monte Carlo sampler.  Markov chains are an important technique in computer science from statistics.  First, we build up a graph model of discreet events with a corresponding transition matrix.  Next, we seed the transition matrix using real-world data (generally derived from posterior probability distributions).  Then, we can sample the Markov model repeatedly (Monte Carlo) to try and converge upon a solution space that is generally an excellent model of our problem domain.
+
+For our project, we utilized MCMC to optimize our state/input vector (coordinate data) to most closely approximate our posteior distribution (our objective function).  Our methods converged well, but required some time to mix (~600k simulations).  We utilized the same neighborhood function as in Simulated Annealing.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{chromo7}
+\caption{A graph of mixing versus number of simulations for MCMC}
+\label{Fig:mcmc_mixing}
+\end{center}
+\end{figure}
 
 \section{Results}
 
@@ -136,7 +149,16 @@ For our second test of stochastic methods, we built a Markov-Chain Monte Carlo s
 
 \section{Visualization}
 
+To visualize our results (and get feedback on making sure our math was correct), we added a basic visualizer of the 3D line generated by the contact model.  Here is an example picture:
 
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{sa_150}
+\caption{An visualization of the contact map generated by simulated annealing}
+\label{Fig:sa_150}
+\end{center}
+\end{figure}
 
 \section{Citations}
 
