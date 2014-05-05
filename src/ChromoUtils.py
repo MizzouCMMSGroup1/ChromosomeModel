@@ -287,6 +287,7 @@ class Chromo:
 			
 			min_score = current_score
 			max_score = current_score
+			score_sum = current_score
 			
 			for k,neighbors in neighborhood.items():
 				for neighbor in neighbors:
@@ -296,22 +297,30 @@ class Chromo:
 						min_score = neighbor_score
 					if neighbor_score > max_score:
 						max_score = neighbor_score
+					score_sum += neighbor_score
 			
 			max_score = abs(max_score)
 			min_score = abs(min_score)
 			score_range = max_score - min_score
+			num_candidates = len(candidates)
+			score_sum = abs(score_sum)
+			score_sum -= (min_score * num_candidates)
 			
 			if score_range == 0:
-				for j in range(len(candidates)):
+				for j in range(num_candidates):
 					candidates[j][2] = 1/len(candidates)
 			else:
-				for j in range(len(candidates)):
-					candidates[j][2] = (abs(candidates[j][1]) - min_score)/score_range
+				for j in range(num_candidates):
+					candidates[j][2] = (abs(candidates[j][1]) - min_score)/ score_sum #score_range
 			
 			new_conformation = None
+			count = 1
 			while new_conformation is None:
-				index = random.randint(len(candidates))
+				index = random.randint(num_candidates)
 				if random.random() < candidates[index][2]:
+					new_conformation = candidates[index]
+				count += 1
+				if count > 9:
 					new_conformation = candidates[index]
 			
 			current_conformation = new_conformation[0]

@@ -48,7 +48,15 @@ The human genome has been sequenced, but modelling the human chromosome remains 
 
 \section{Overview}
 
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{architecture}
+\caption{Architecture Summary}
+\label{Fig:architecture}
+\end{center}
+\end{figure}
 
+We do not have a complicated pipeline for this project.  Essentially, we take input data, clean it up slightly, and apply one of three different methods: CG, SA, and MCMC.
 
 \section{Dataset}
 
@@ -131,8 +139,16 @@ For a neighborhood function, we select a contact at random.  Next, we generate a
 \begin{figure}[H]
 \begin{center}
 \includegraphics[width=\textwidth]{SA_Chromo7-Scores}
-\caption{A graph of score versus number of simulations for SA}
-\label{Fig:sa_score}
+\caption{A graph of score versus number of simulations for SA: -n6-e157000-t250}
+\label{Fig:sa_score_n6}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth]{SA_None-Scores}
+\caption{A graph of score versus number of simulations for SA: -n3-e1500000-t250}
+\label{Fig:sa_score_none}
 \end{center}
 \end{figure}
 
@@ -140,41 +156,57 @@ For a neighborhood function, we select a contact at random.  Next, we generate a
 
 For our second test of stochastic methods, we built a Markov-Chain Monte Carlo sampler.  Markov chains are an important technique in computer science from statistics.  First, we build up a graph model of discreet events with a corresponding transition matrix.  Next, we seed the transition matrix using real-world data (generally derived from posterior probability distributions).  Then, we can sample the Markov model repeatedly (Monte Carlo) to try and converge upon a solution space that is generally an excellent model of our problem domain.
 
-For our project, we utilized MCMC to optimize our state/input vector (coordinate data) to most closely approximate our posteior distribution (our objective function).  Our methods converged well, but required some time to mix (~600k simulations).  We utilized the same neighborhood function as in Simulated Annealing.
+For our project, we utilized MCMC to optimize our state/input vector (coordinate data) to most closely approximate our posteior distribution (our objective function).  Our methods converged well, but required a large number of simulations to mix (over one million simulations for the larger residues).  We utilized a different neighborhood function than we used in Simulated Annealing.  First, we select a random region from which to generate a neighborhood. The neighborhood is then created by increasing/decreasing the location in each of the three dimensions: $(x, y, z)$. In this way we generate 8 neighbors and a default position which are scored and given a probability of selection based on the score range, with higher scoring conformations more likely to be sampled. Once a new neighbor conformation is selected the process repeats until all iterations have completed.
+
+We tested two different versions of MCMC: a greedy and non-greedy selector:
+
+\begin{equation}
+      T_{greedy} = (score - minScore) / scoreRange
+    \end{equation}
+\begin{equation}
+      T_{non-greedy} = (score - minScore) / (scoreSum - minScore * neighborCount)
+    \end{equation}
 
 \begin{figure}[H]
 \begin{center}
 \includegraphics[width=\textwidth]{MCMC_Chromo7-Scores}
-\caption{A graph of mixing versus number of simulations for MCMC}
+\caption{A graph of mixing versus number of simulations for MCMC: -n6-e157000}
 \label{Fig:mcmc_mixing}
 \end{center}
 \end{figure}
 
 \section{Results}
 
+For testing purposes, we wrote tools to enable us to work on a subset of the final data (ten resiudes, for example).  This in turn allowed us to make sure that all of our methods converged to the same results and provided an objective benchmark.
+
+Generally speaking, we found that:
+
+\begin{enumerate}
+
+\item Our conjugate gradient solver was not very fast, but provided accurate results.  Our usage of the Powell method, while easy to implement, was not very fair to this technique.  Since we know the objective function, we should have been able to build a derivative function by hand and in turn make this method much faster.
+
+\item When utilizing an external solver, simulated annealing converged quickly and rapidly to a solution (approx. 5 minutes for a 157 residue chain).  Our custom SA solver was slower (approx. 600k-1.5 million simulations required).  We attribute this to that our neighborhood function did not change the state space very much and as a result the entire process required a lot more simulation time.  We ended up just using the linear temperature model and did not find that the sigmoid model offered much improvement.
+
+\item We found that MCMC mixed (and found a solution) on our problem for smaller residue tests, but for the larger problem performance was too limited for us to recommend this technique going forward (we estimate \gt1 million simulations are needed for a full chain).  The table below is not entirely fair to MCMC, because our neighborhood function generates eight neighbors for each cycle.  In other words, the two methods are doing roughly the same amount of math, the problem is simply that MCMC does not converge as quickly as would be desired.\\
+
+\end{enumerate}
 
 
-\section{Visualization}
-
-To visualize our results (and get feedback on making sure our math was correct), we added a basic visualizer of the 3D line generated by the contact model.  Here is an example picture:
-
-
-\begin{figure}[H]
 \begin{center}
-\includegraphics[width=\textwidth]{sa_150}
-\caption{An visualization of the contact map generated by simulated annealing}
-\label{Fig:sa_150}
+\begin{tabular}{|l|c|c|c|r|}
+\multicolumn{2}{c}{Iterations/minute} \\
+    \hline
+    SA & 10,000 \\ \hline
+    MCMC: greedy & 1750    \\ \hline
+    MCMC: non-greedy & 1700    \\ \hline
+    \end{tabular}
 \end{center}
-\end{figure}
 
 \section{Citations}
 
 We thank the following tools and papers: \\
 
 Tuan Trieu and Jianlin Cheng.  Large-scale reconstruction of 3D structures of human chromosomes from chromosomal contact data.  Nucl. Acids Res. first published online January 24, 2014. doi:10.1093/nar/gkt1411
-
-
-\section{Visualization}
 
 
 
